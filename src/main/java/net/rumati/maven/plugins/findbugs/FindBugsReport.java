@@ -1,6 +1,9 @@
 package net.rumati.maven.plugins.findbugs;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
@@ -108,8 +111,14 @@ public class FindBugsReport
         return project;
     }
 
+    @Override
+    public boolean canGenerateReport()
+    {
+        return new File(project.getBuild().getOutputDirectory()).isDirectory();
+    }
+
     private void writeFindBugsProjectFile(MavenProject project, File outputFile)
-            throws ParserConfigurationException, TransformerException
+            throws ParserConfigurationException, TransformerException, IOException
     {
         Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
         Element projectElement = doc.createElement("Project");
@@ -140,13 +149,21 @@ public class FindBugsReport
         trans.setOutputProperty(OutputKeys.INDENT, "yes");
         trans.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 
-        trans.transform(new DOMSource(doc), new StreamResult(outputFile));
+        OutputStream out = new FileOutputStream(outputFile);
+        try {
+            trans.transform(new DOMSource(doc), new StreamResult(out));
+        }finally{
+            out.close();
+        }
     }
 
     @Override
     protected void executeReport(Locale locale)
             throws MavenReportException
     {
+        if (!canGenerateReport()){
+            return;
+        }
         try{
             File tmpProjectFile = File.createTempFile("findbugs", ".fbp");
             try{
@@ -232,11 +249,13 @@ public class FindBugsReport
 
                     sink.section1_();
 
-                    doSummary(sink, xpath, doc);
-
-                    doBugsByClassReport(sink, doc, xpath);
-
-                    doBugsByCategoryReport(sink, doc, xpath);
+                    if (doSummary(sink, xpath, doc)){
+                        /*
+                         * Only do reports if bugs were actually found.
+                         */
+                        doBugsByClassReport(sink, doc, xpath);
+                        doBugsByCategoryReport(sink, doc, xpath);
+                    }
 
                     sink.body_();
 
@@ -253,6 +272,14 @@ public class FindBugsReport
         }
     }
 
+    /**
+     * Generated the summary part of the report, returning an indication of whether or not bugs were found.
+     * @param sink
+     * @param xpath
+     * @param doc
+     * @return <code>true</code> if bugs were found, or <code>false</code> if no bugs were reported.
+     * @throws XPathExpressionException
+     */
     private boolean doSummary(Sink sink, XPath xpath, Document doc)
             throws XPathExpressionException
     {

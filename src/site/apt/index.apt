@@ -21,6 +21,8 @@ FindBugs Maven Plugin
 
   These are some examples of the output of the FindBugs Maven Plugin.
 
+  * {{{http://rumati.net/projects/ezsql/4.0/findbugs.html}EZSQL FindBugs Report}}
+
 * See also
 
   * {{http://mojo.codehaus.org/findbugs-maven-plugin/}} - Codehaus' FindBugs Maven Plugin. Implemented in Groovy.
