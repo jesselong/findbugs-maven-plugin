@@ -1,6 +1,13 @@
-
+<?xml version="1.0" encoding="utf8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+    
     <groupId>net.rumati.maven.plugins</groupId>
     <artifactId>findbugs-maven-plugin</artifactId>
     <packaging>maven-plugin</packaging>
@@ -9,6 +16,9 @@
     <description>
         A Maven 2 plugin for printing FindBugs static analysis reports.
     </description>
+    
+    <url>https://github.com/jesselong/findbugs-maven-plugin</url>
+    
     <licenses>
         <license>
             <name>Apache 2</name>
@@ -17,38 +27,11 @@
             <comments>A business-friendly OSS license</comments>
         </license>
     </licenses>
+    
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    <profiles>
-        <profile>
-            <id>release-sign-artifacts</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.1</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+    
     <dependencies>
         <dependency>
             <groupId>org.apache.maven</groupId>
@@ -76,6 +59,7 @@
             <version>2.0.0</version>
         </dependency>
     </dependencies>
+    
     <build>
         <plugins>
             <plugin>
@@ -185,20 +169,20 @@
             </plugin>
         </plugins>
     </build>
+    
+    <scm>
+        <url>https://github.com/jesselong/findbugs-maven-plugin/</url>
+        <connection>scm:git:https://github.com/jesselong/findbugs-maven-plugin</connection>
+        <developerConnection>scm:git:ssh://github.com/jesselong/findbugs-maven-plugin</developerConnection>
+    </scm>
+
     <distributionManagement>
-        <repository>
-            <id>oss.sonatype.org</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        </repository>
-        <snapshotRepository>
-            <id>oss.sonatype.org</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
         <site>
             <id>local-deploy</id>
             <url>file://${basedir}/target/deploy/site/</url>
         </site>
     </distributionManagement>
+    
     <developers>
         <developer>
             <id>jpl</id>
@@ -210,5 +194,6 @@
             <timezone>+2</timezone>
         </developer>
     </developers>
+    
     <inceptionYear>2010</inceptionYear>
 </project>
