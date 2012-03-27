@@ -173,7 +173,7 @@
     <scm>
         <url>https://github.com/jesselong/findbugs-maven-plugin/</url>
         <connection>scm:git:https://github.com/jesselong/findbugs-maven-plugin</connection>
-        <developerConnection>scm:git:ssh://github.com/jesselong/findbugs-maven-plugin</developerConnection>
+        <developerConnection>scm:git:ssh://git@github.com/jesselong/findbugs-maven-plugin</developerConnection>
     </scm>
 
     <distributionManagement>
