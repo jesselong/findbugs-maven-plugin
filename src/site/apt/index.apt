@@ -1,0 +1,34 @@
+ ------
+ Introduction
+ ------
+ Jesse Long
+ ------
+ 2010-06-21
+ ------
+
+FindBugs Maven Plugin
+
+  The FindBugs Maven Plugin create a report on the potential bugs found by the
+  {{{http://findbugs.sourceforge.net}FindBugs}} program, which uses static analysis to find bugs in Java code.
+
+* Goals Overview
+
+  General information about the goals.
+
+  * {{{./findbugs-mojo.html}findbugs:findbugs}} Creates the FindBugs report.
+
+* Examples
+
+  These are some examples of the output of the FindBugs Maven Plugin.
+
+* See also
+
+  * {{http://mojo.codehaus.org/findbugs-maven-plugin/}} - Codehaus' FindBugs Maven Plugin. Implemented in Groovy.
+    Codehaus' implementation has a different feature set to this implementation. Codehaus' implementation's output
+    report is less comprehensive, and links to the FindBugs website for bug descriptions while this implementation
+    shows all bug data on the page. The Codehaus implementation has better support for multiple languages, and the
+    integration with Maven is probably more technically correct (Codehaus people are generally very good at Maven).
+    The Codehaus implementation is older and more tested than this implementation, and probably has less bugs.
+
+    This project was started out of the frustration of waiting for a bugfix release of the Codehaus implementation
+    for more than a month after I had submitted a patch to resolve a rather serious bug.

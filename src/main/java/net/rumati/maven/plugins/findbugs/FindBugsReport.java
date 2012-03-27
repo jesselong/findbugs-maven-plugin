@@ -2,6 +2,8 @@ package net.rumati.maven.plugins.findbugs;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -29,6 +31,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
+ * Generates the FindBugs report.
  * @goal findbugs
  * @execute phase="compile"
  * @requiresDependencyResolution compile
@@ -38,33 +41,54 @@ public class FindBugsReport
         extends AbstractMavenReport
 {
     /**
+     * The output directory for the report.
      * @parameter default-value="${project.reporting.outputDirectory}"
      * @required
      * @readonly
      */
     private File outputDirectory;
     /**
+     * The project for which to run the report.
      * @parameter default-value="${project}"
      * @required
      * @readonly
      */
     private MavenProject project;
     /**
+     * The site renderer to use when creating content.
      * @component
      */
     private Renderer siteRenderer;
     /**
+     * The location of the JXR cross referenced source. This for use with the
+     * <a href="http://maven.apache.org/plugins/maven-jxr-plugin/">Maven JXR Plugin</a>.
+     * If this parameter is provided, the report will link to source at which a bug occurs.
+     * This should be a relative path to the report output directory, for
+     * example <tt>./xref</tt>.
      * @parameter
      */
     private String xrefPath;
     /**
+     * The minimum priority which a bug must have to appear on the report. Possible values are
+     * <tt>low</tt>, <tt>medium</tt> and <tt>high</tt>. If <tt>threshold</tt> is <tt>low</tt>,
+     * bugs of priorities <tt>low</tt>, <tt>medium</tt> and <tt>high</tt> will be reported. If
+     * <tt>threshold</tt> is <tt>medium</tt> only bugs of priorities <tt>medium</tt> and <tt>high</tt>
+     * will be reported. If <tt>threshold</tt> is <tt>high</tt> only <tt>high</tt> priority bugs
+     * will be reported.
      * @parameter default-value="medium"
      */
     private String threshold;
     /**
+     * The amount of effort to use when looking for bugs. Possible values are
+     * <tt>min</tt>, <tt>less</tt>, <tt>default</tt>, <tt>more</tt> and <tt>max</tt>.
      * @parameter default-value="default"
      */
     private String effort;
+    /**
+     * An exclude filter file, with a list of rules for bugs to exclude from the report.
+     * @parameter
+     */
+    private File excludeFilterFile;
 
     @Override
     protected Renderer getSiteRenderer()
@@ -124,9 +148,9 @@ public class FindBugsReport
             throws MavenReportException
     {
         try{
-            File tmpFile = File.createTempFile("findbugs", ".fbp");
+            File tmpProjectFile = File.createTempFile("findbugs", ".fbp");
             try{
-                writeFindBugsProjectFile(project, tmpFile);
+                writeFindBugsProjectFile(project, tmpProjectFile);
                 File outputFile = File.createTempFile("findbug", ".xml");
                 try{
                     String bugPriorityLevel = null;
@@ -152,9 +176,27 @@ public class FindBugsReport
                     }else if (effort.toLowerCase().equals("max")){
                         effortArg = "-effort:max";
                     }
-                    edu.umd.cs.findbugs.LaunchAppropriateUI.main(new String[]{ "-textui", effortArg, bugPriorityLevel, "-project",
-                                                                               tmpFile.getAbsolutePath(), "-xml:withMessages",
-                                                                               "-output", outputFile.getAbsolutePath() });
+
+                    List<String> args = new LinkedList<String>();
+                    args.add("-textui");
+                    args.add(effortArg);
+                    args.add(bugPriorityLevel);
+
+                    if (excludeFilterFile != null){
+                        if (!excludeFilterFile.exists()){
+                            throw new MavenReportException("Exclude file does not exist: " + excludeFilterFile.getAbsolutePath());
+                        }
+                        args.add("-exclude");
+                        args.add(excludeFilterFile.getAbsolutePath());
+                    }
+
+                    args.add("-project");
+                    args.add(tmpProjectFile.getAbsolutePath());
+                    args.add("-xml:withMessages");
+                    args.add("-output");
+                    args.add(outputFile.getAbsolutePath());
+
+                    edu.umd.cs.findbugs.LaunchAppropriateUI.main(args.toArray(new String[args.size()]));
                     Document doc =
                             DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(outputFile);
                     XPath xpath = XPathFactory.newInstance().newXPath();
@@ -204,7 +246,7 @@ public class FindBugsReport
                     outputFile.delete();
                 }
             }finally{
-                tmpFile.delete();
+                tmpProjectFile.delete();
             }
         }catch (Exception e){
             throw new MavenReportException("Error creating report", e);
