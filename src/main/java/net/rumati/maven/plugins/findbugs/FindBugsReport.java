@@ -1,5 +1,6 @@
 package net.rumati.maven.plugins.findbugs;
 
+import edu.umd.cs.findbugs.NoClassesFoundToAnalyzeException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import org.w3c.dom.NodeList;
 
 /**
  * Generates the FindBugs report.
+ * 
  * @goal findbugs
  * @execute phase="compile"
  * @requiresDependencyResolution compile
@@ -150,7 +152,7 @@ public class FindBugsReport
         trans.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 
         OutputStream out = new FileOutputStream(outputFile);
-        try {
+        try{
             trans.transform(new DOMSource(doc), new StreamResult(out));
         }finally{
             out.close();
@@ -213,10 +215,13 @@ public class FindBugsReport
                     args.add("-output");
                     args.add(outputFile.getAbsolutePath());
 
-                    edu.umd.cs.findbugs.LaunchAppropriateUI.main(args.toArray(new String[args.size()]));
-                    Document doc =
-                            DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(outputFile);
-                    XPath xpath = XPathFactory.newInstance().newXPath();
+                    boolean noClassesToAnalyze = false;
+                    try{
+                        edu.umd.cs.findbugs.LaunchAppropriateUI.main(args.toArray(new String[args.size()]));
+                    }catch (NoClassesFoundToAnalyzeException e){
+                        noClassesToAnalyze = true;
+                        getLog().warn("No classes to analyze", e);
+                    }
 
                     Sink sink = getSink();
 
@@ -238,23 +243,36 @@ public class FindBugsReport
                     sink.link("http://findbugs.sourceforge.net/");
                     sink.text("FindBugs");
                     sink.link_();
-                    sink.text(" program, which uses static analysis to find bugs in Java code. The report was generated with the following parameters:");
+                    sink.text(" program, which uses static analysis to find bugs in Java code.");
                     sink.paragraph_();
 
-                    sink.text("FindBugs version: " + xpath.evaluate("/BugCollection/attribute::version", doc));
-                    sink.lineBreak();
-                    sink.text("Effort: " + effort.toLowerCase());
-                    sink.lineBreak();
-                    sink.text("Bug Priority Threshold: " + threshold.toLowerCase());
-
-                    sink.section1_();
-
-                    if (doSummary(sink, xpath, doc)){
-                        /*
-                         * Only do reports if bugs were actually found.
-                         */
-                        doBugsByClassReport(sink, doc, xpath);
-                        doBugsByCategoryReport(sink, doc, xpath);
+                    if (noClassesToAnalyze){
+                        sink.paragraph();
+                        sink.text("No classes were found to analyze in this project.");
+                        sink.paragraph_();
+                        sink.section1_();
+                    }else{
+                        Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(outputFile);
+                        XPath xpath = XPathFactory.newInstance().newXPath();
+                        
+                        sink.paragraph();
+                        sink.text("The report was generated with the following parameters:");
+                        sink.paragraph_();
+                        sink.text("FindBugs version: " + xpath.evaluate("/BugCollection/attribute::version", doc));
+                        sink.lineBreak();
+                        sink.text("Effort: " + effort.toLowerCase());
+                        sink.lineBreak();
+                        sink.text("Bug Priority Threshold: " + threshold.toLowerCase());
+                        
+                        sink.section1_();
+                        
+                        if (doSummary(sink, xpath, doc)){
+                            /*
+                            * Only do reports if bugs were actually found.
+                            */
+                            doBugsByClassReport(sink, doc, xpath);
+                            doBugsByCategoryReport(sink, doc, xpath);
+                        }
                     }
 
                     sink.body_();
@@ -274,10 +292,13 @@ public class FindBugsReport
 
     /**
      * Generated the summary part of the report, returning an indication of whether or not bugs were found.
+     *
      * @param sink
      * @param xpath
      * @param doc
-     * @return <code>true</code> if bugs were found, or <code>false</code> if no bugs were reported.
+     * @return
+     * <code>true</code> if bugs were found, or
+     * <code>false</code> if no bugs were reported.
      * @throws XPathExpressionException
      */
     private boolean doSummary(Sink sink, XPath xpath, Document doc)
@@ -550,13 +571,13 @@ public class FindBugsReport
                 sink.tableHeaderCell_();
                 sink.tableRow_();
 
-                NodeList bugNodes = (NodeList)xpath.evaluate("/BugCollection/BugInstance[child::Class/attribute::classname=\""
-                        + className + "\" and child::Class/attribute::primary=\"true\"]", doc, XPathConstants.NODESET);
+                NodeList bugNodes = (NodeList)xpath.evaluate("/BugCollection/BugInstance[child::Class/attribute::classname=\"" +
+                         className + "\" and child::Class/attribute::primary=\"true\"]", doc, XPathConstants.NODESET);
                 for (int bugNo = 0; bugNo < bugNodes.getLength(); bugNo++){
                     Node bugNode = bugNodes.item(bugNo);
                     String categoryCode = xpath.evaluate("attribute::category", bugNode);
-                    String categoryName = xpath.evaluate("/BugCollection/BugCategory[@category=\"" + categoryCode
-                            + "\"]/Description", doc);
+                    String categoryName = xpath.evaluate("/BugCollection/BugCategory[@category=\"" + categoryCode +
+                             "\"]/Description", doc);
                     sink.tableRow();
                     sink.tableCell();
                     sink.text(categoryName);
@@ -663,8 +684,8 @@ public class FindBugsReport
             sink.tableCell_();
             sink.tableCell();
             sink.bold();
-            sink.text(""
-                    + ((NodeList)xpath.evaluate("/BugCollection/BugInstance[@category=\"" + categoryCode + "\"]", doc, XPathConstants.NODESET)).getLength());
+            sink.text("" +
+                     ((NodeList)xpath.evaluate("/BugCollection/BugInstance[@category=\"" + categoryCode + "\"]", doc, XPathConstants.NODESET)).getLength());
             sink.bold_();
             sink.tableCell_();
             sink.tableRow_();
@@ -685,8 +706,8 @@ public class FindBugsReport
                 sink.list_();
                 sink.tableCell_();
                 sink.tableCell();
-                sink.text(""
-                        + ((NodeList)xpath.evaluate("/BugCollection/BugInstance[@type=\"" + typeCode + "\"]", doc, XPathConstants.NODESET)).getLength());
+                sink.text("" +
+                         ((NodeList)xpath.evaluate("/BugCollection/BugInstance[@type=\"" + typeCode + "\"]", doc, XPathConstants.NODESET)).getLength());
                 sink.tableCell_();
                 sink.tableRow_();
             }
@@ -760,15 +781,15 @@ public class FindBugsReport
                 sink.tableRow_();
 
                 SortedSet<String> bugTypeClasses = new TreeSet<String>();
-                NodeList bugNodes = (NodeList)xpath.evaluate("/BugCollection/BugInstance[@type=\"" + typeCode
-                        + "\"]/Class[@primary=\"true\"]", doc, XPathConstants.NODESET);
+                NodeList bugNodes = (NodeList)xpath.evaluate("/BugCollection/BugInstance[@type=\"" + typeCode +
+                         "\"]/Class[@primary=\"true\"]", doc, XPathConstants.NODESET);
                 for (int bugno = 0; bugno < bugNodes.getLength(); bugno++){
                     bugTypeClasses.add(xpath.evaluate("attribute::classname", bugNodes.item(bugno)));
                 }
 
                 for (String className : bugTypeClasses){
-                    bugNodes = (NodeList)xpath.evaluate("/BugCollection/BugInstance[@type=\"" + typeCode + "\"]/Class[@classname=\""
-                            + className + "\"]", doc, XPathConstants.NODESET);
+                    bugNodes = (NodeList)xpath.evaluate("/BugCollection/BugInstance[@type=\"" + typeCode + "\"]/Class[@classname=\"" +
+                             className + "\"]", doc, XPathConstants.NODESET);
                     for (int bugno = 0; bugno < bugNodes.getLength(); bugno++){
                         Node bugClassNode = bugNodes.item(bugno);
                         sink.tableRow();
